@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestor de Tareas Serverless</title>
+    <style>body { font-family: Arial; padding: 20px; max-width: 600px; margin: auto; }</style>
+</head>
+<body>
+    <h2>Mis Tareas (Resiliente)</h2>
+    <div id="status" style="color: blue;"></div>
+    <input type="text" id="nuevaTarea" placeholder="Escribe una tarea">
+    <button onclick="agregarTarea()">Agregar</button>
+    <ul id="listaTareas"></ul>
+
+    <script>
+        // EL SCRIPT DE PYTHON TE DARÁ ESTA URL, DEBES PEGARLA AQUÍ DESPUÉS
+        const API_URL = "https://vptzxkybqn3ypl5x6jlc2mzn7i0apzff.lambda-url.us-east-1.on.aws/"; 
+
+        async function cargarTareas(reintentos = 3) {
+            try {
+                let response = await fetch(API_URL);
+                if (!response.ok) throw new Error("Falla en el servidor");
+                let data = await response.json();
+                document.getElementById('listaTareas').innerHTML = data.map(t => `<li>${t.tarea}</li>`).join('');
+                document.getElementById('status').innerText = "Conectado";
+            } catch (error) {
+                if (reintentos > 0) {
+                    document.getElementById('status').innerText = `Error detectado. Reintentando... (${reintentos} intentos restantes)`;
+                    setTimeout(() => cargarTareas(reintentos - 1), 2000);
+                } else {
+                    document.getElementById('status').innerText = "Sistema degradado. Intente más tarde.";
+                    document.getElementById('status').style.color = "red";
+                }
+            }
+        }
+
+        async function agregarTarea() {
+            const tarea = document.getElementById('nuevaTarea').value;
+            await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ tarea: tarea })
+            });
+            document.getElementById('nuevaTarea').value = '';
+            cargarTareas();
+        }
+        // Descomentar esta línea después de poner la API_URL
+           cargarTareas(); 
+    </script>
+</body>
+</html>
